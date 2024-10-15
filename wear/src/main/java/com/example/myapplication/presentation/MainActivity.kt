@@ -36,7 +36,6 @@ import com.example.myapplication.R
 import com.example.myapplication.presentation.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity(), SensorEventListener {
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
