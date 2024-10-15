@@ -3,8 +3,9 @@
  * most up to date changes to the libraries and their usages.
  */
 
-package com.example.myapplication.presentation
+package com.example.myapplication2.presentation
 
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -13,6 +14,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
@@ -33,9 +36,7 @@ import com.example.myapplication.R
 import com.example.myapplication.presentation.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity(), SensorEventListener {
-
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
-
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
@@ -47,6 +48,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val gyValue = mutableStateOf("")
     val gzValue = mutableStateOf("")
 
+    val permissions = arrayOf(
+        android.Manifest.permission.BODY_SENSORS
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
@@ -55,50 +60,51 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setTheme(android.R.style.Theme_DeviceDefault)
 
         setContent {
-            WearApp(axValue.value, ayValue.value, azValue.value,
-                gxValue.value, gyValue.value, gzValue.value)
+            WearApp("x1","y1","z1","x2","y2","z2")
         }
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         getSensors()
     }
 
-    private fun getSensors() {
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+    fun getSensors() {
+        if (permissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
+            ActivityCompat.requestPermissions(this, permissions, 1)
+        } else {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-        accelerometer?.also {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
-        }
-        gyroscope?.also {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
+            accelerometer?.also {
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
+            }
+            gyroscope?.also {
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
+            }
         }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            axValue.value = "${event.values[0].toInt()}"
-            ayValue.value = "${event.values[1].toInt()}"
-            azValue.value = "${event.values[2].toInt()}"
+            axValue.value = "${event.values[0]}"
+            ayValue.value = "${event.values[1]}"
+            azValue.value = "${event.values[2]}"
         }
         else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-            gxValue.value = "${event.values[0].toInt()}"
-            gyValue.value = "${event.values[1].toInt()}"
-            gzValue.value = "${event.values[2].toInt()}"
+            gxValue.value = "${event.values[0]}"
+            gyValue.value = "${event.values[1]}"
+            gzValue.value = "${event.values[2]}"
         }
+
         setContent {
-            WearApp(axValue.value, ayValue.value, azValue.value,
-                gxValue.value, gyValue.value, gzValue.value)
+            WearApp(
+                axValue.value, ayValue.value, azValue.value,
+                gxValue.value, gyValue.value, gzValue.value
+            )
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        return
-    }
-
-    override fun onStart() {
-        super.onStart()
-        permissionLauncher.launch(android.Manifest.permission.BODY_SENSORS)
+        return // do nothing
     }
 
     override fun onResume() {
@@ -117,8 +123,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onDestroy() {
-        sensorManager.unregisterListener(this)
         super.onDestroy()
+        sensorManager.unregisterListener(this)
     }
 }
 
@@ -153,5 +159,5 @@ fun Greeting(x1: String, y1: String, z1: String,
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
-    WearApp("","","","","","")
+    WearApp("x1","y1","z1","x2","y2","z2")
 }
