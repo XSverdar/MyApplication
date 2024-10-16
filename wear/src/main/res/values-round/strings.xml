@@ -1,3 +1,3 @@
 <resources>
-    <string name="hello_world">ACCELEROMETER\n%1$s, %2$s, %3$s\n\nGYROSCOPE\n%4$s, %5$s, %6$s\nHEART RATE\n%7$s</string>
+    <string name="hello_world">%1$s %2$s %3$s\n\n%4$s %5$s %6$s\n\n%7$s</string>
 </resources>

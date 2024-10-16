@@ -3,7 +3,7 @@
  * most up to date changes to the libraries and their usages.
  */
 
-package com.example.myapplication2.presentation
+package com.example.myapplication.presentation
 
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -13,7 +13,6 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -39,6 +38,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
+    private var heartRate: Sensor? = null
 
     val axValue = mutableStateOf("")
     val ayValue = mutableStateOf("")
@@ -46,9 +46,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val gxValue = mutableStateOf("")
     val gyValue = mutableStateOf("")
     val gzValue = mutableStateOf("")
+    val hrValue = mutableStateOf("")
 
     val permissions = arrayOf(
-        android.Manifest.permission.BODY_SENSORS
+        android.Manifest.permission.BODY_SENSORS,
+        android.Manifest.permission.ACTIVITY_RECOGNITION,
+        android.Manifest.permission.HIGH_SAMPLING_RATE_SENSORS
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setTheme(android.R.style.Theme_DeviceDefault)
 
         setContent {
-            WearApp("x1","y1","z1","x2","y2","z2")
+            WearApp("x1","y1","z1","x2","y2","z2","hr")
         }
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
@@ -69,9 +72,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     fun getSensors() {
         if (permissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
             ActivityCompat.requestPermissions(this, permissions, 1)
-        } else {
+        }
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+            heartRate = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
 
             accelerometer?.also {
                 sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
@@ -80,7 +84,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
             }
         }
-    }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
@@ -93,17 +96,21 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             gyValue.value = "${event.values[1]}"
             gzValue.value = "${event.values[2]}"
         }
+        else if (event?.sensor?.type == Sensor.TYPE_HEART_RATE) {
+            hrValue.value = "${event.values[0]}"
+        }
 
         setContent {
             WearApp(
                 axValue.value, ayValue.value, azValue.value,
-                gxValue.value, gyValue.value, gzValue.value
+                gxValue.value, gyValue.value, gzValue.value,
+                hrValue.value
             )
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        return // do nothing
+        return
     }
 
     override fun onResume() {
@@ -112,6 +119,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
         }
         gyroscope?.also {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
+        }
+        heartRate?.also {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
         }
     }
@@ -129,7 +139,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 @Composable
 fun WearApp(x1: String, y1: String, z1: String,
-            x2: String, y2: String, z2: String) {
+            x2: String, y2: String, z2: String,
+            hr: String) {
     MyApplicationTheme {
         Box(
             modifier = Modifier
@@ -139,24 +150,26 @@ fun WearApp(x1: String, y1: String, z1: String,
         ) {
             TimeText()
             Greeting(x1 = x1, y1 = y1, z1 = z1,
-                x2 = x2, y2 = y2, z2 = z2)
+                x2 = x2, y2 = y2, z2 = z2,
+                hr = hr)
         }
     }
 }
 
 @Composable
 fun Greeting(x1: String, y1: String, z1: String,
-             x2: String, y2: String, z2: String) {
+             x2: String, y2: String, z2: String,
+             hr: String) {
     Text(
         modifier = Modifier.fillMaxWidth(),
         textAlign = TextAlign.Center,
         color = MaterialTheme.colors.primary,
-        text = stringResource(R.string.hello_world, x1, y1, z1, x2, y2, z2)
+        text = stringResource(R.string.hello_world, x1, y1, z1, x2, y2, z2, hr)
     )
 }
 
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
-    WearApp("x1","y1","z1","x2","y2","z2")
+    WearApp("x1","y1","z1","x2","y2","z2", "hr")
 }
