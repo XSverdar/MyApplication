@@ -50,7 +50,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     val permissions = arrayOf(
         android.Manifest.permission.BODY_SENSORS,
-        android.Manifest.permission.ACTIVITY_RECOGNITION,
         android.Manifest.permission.HIGH_SAMPLING_RATE_SENSORS
     )
 
@@ -73,7 +72,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (permissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
             ActivityCompat.requestPermissions(this, permissions, 1)
         }
-            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
             heartRate = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
 
@@ -86,15 +85,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            axValue.value = "${event.values[0]}"
-            ayValue.value = "${event.values[1]}"
-            azValue.value = "${event.values[2]}"
+        if (event?.sensor?.type == Sensor.TYPE_LINEAR_ACCELERATION) {
+
+            axValue.value = String.format("%.2f", event.values[0])
+            ayValue.value = String.format("%.2f", event.values[1])
+            azValue.value = String.format("%.2f", event.values[2])
         }
         else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-            gxValue.value = "${event.values[0]}"
-            gyValue.value = "${event.values[1]}"
-            gzValue.value = "${event.values[2]}"
+            gxValue.value = String.format("%.2f", event.values[0])
+            gyValue.value = String.format("%.2f", event.values[1])
+            gzValue.value = String.format("%.2f", event.values[2])
         }
         else if (event?.sensor?.type == Sensor.TYPE_HEART_RATE) {
             hrValue.value = "${event.values[0]}"
