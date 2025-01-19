@@ -11,9 +11,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,18 +27,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.myapplication.R
+import com.example.myapplication.data.AppDatabase
+import com.example.myapplication.data.SensorData
 import com.example.myapplication.presentation.theme.MyApplicationTheme
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
     private var heartRate: Sensor? = null
+    private lateinit var database: AppDatabase
 
     val axValue = mutableStateOf("")
     val ayValue = mutableStateOf("")
@@ -47,6 +54,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val gyValue = mutableStateOf("")
     val gzValue = mutableStateOf("")
     val hrValue = mutableStateOf("")
+
+    private var prevAx: Float? = null
+    private var prevAy: Float? = null
+    private var prevAz: Float? = null
+    private var prevGx: Float? = null
+    private var prevGy: Float? = null
+    private var prevGz: Float? = null
+    private var prevHr: Float? = null
 
     val permissions = arrayOf(
         android.Manifest.permission.BODY_SENSORS,
@@ -63,6 +78,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setContent {
             WearApp("x1","y1","z1","x2","y2","z2","hr")
         }
+
+        database = AppDatabase.getInstance(this)
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         getSensors()
@@ -85,27 +102,98 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_LINEAR_ACCELERATION) {
+        if (event == null) return
 
-            axValue.value = String.format("%.2f", event.values[0])
-            ayValue.value = String.format("%.2f", event.values[1])
-            azValue.value = String.format("%.2f", event.values[2])
-        }
-        else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-            gxValue.value = String.format("%.2f", event.values[0])
-            gyValue.value = String.format("%.2f", event.values[1])
-            gzValue.value = String.format("%.2f", event.values[2])
-        }
-        else if (event?.sensor?.type == Sensor.TYPE_HEART_RATE) {
-            hrValue.value = "${event.values[0]}"
+        when (event.sensor.type) {
+            Sensor.TYPE_LINEAR_ACCELERATION -> {
+                val ax = event.values[0]
+                val ay = event.values[1]
+                val az = event.values[2]
+
+                // Only update if there's a change in the values
+                if (ax != prevAx || ay != prevAy || az != prevAz) {
+                    axValue.value = String.format("%.2f", ax)
+                    ayValue.value = String.format("%.2f", ay)
+                    azValue.value = String.format("%.2f", az)
+
+                    // Insert the new data into the database
+                    lifecycleScope.launch {
+                        val sensorData = SensorData(ax = ax, ay = ay, az = az, gx = null, gy = null, gz = null, hr = null)
+                        database.sensorDataDao().insertSensorData(sensorData)
+
+                        // After inserting, fetch the data to check
+                        fetchSensorData()  // Fetch and log the stored data
+                    }
+
+                    // Update previous values
+                    prevAx = ax
+                    prevAy = ay
+                    prevAz = az
+                }
+            }
+            Sensor.TYPE_GYROSCOPE -> {
+                val gx = event.values[0]
+                val gy = event.values[1]
+                val gz = event.values[2]
+
+                // Only update if there's a change in the values
+                if (gx != prevGx || gy != prevGy || gz != prevGz) {
+                    gxValue.value = String.format("%.2f", gx)
+                    gyValue.value = String.format("%.2f", gy)
+                    gzValue.value = String.format("%.2f", gz)
+
+                    // Insert the new data into the database
+                    lifecycleScope.launch {
+                        val sensorData = SensorData(ax = null, ay = null, az = null, gx = gx, gy = gy, gz = gz, hr = null)
+                        database.sensorDataDao().insertSensorData(sensorData)
+
+                        // After inserting, fetch the data to check
+                        fetchSensorData()  // Fetch and log the stored data
+                    }
+
+                    // Update previous values
+                    prevGx = gx
+                    prevGy = gy
+                    prevGz = gz
+                }
+            }
+            Sensor.TYPE_HEART_RATE -> {
+                val hr = event.values[0]
+
+                // Only update if there's a change in the heart rate
+                if (hr != prevHr) {
+                    hrValue.value = String.format("%.0f", hr)
+
+                    // Insert the new data into the database
+                    lifecycleScope.launch {
+                        val sensorData = SensorData(ax = null, ay = null, az = null, gx = null, gy = null, gz = null, hr = hr)
+                        database.sensorDataDao().insertSensorData(sensorData)
+
+                        // After inserting, fetch the data to check
+                        fetchSensorData()  // Fetch and log the stored data
+                    }
+
+                    // Update previous value
+                    prevHr = hr
+                }
+            }
         }
 
+        // Update the UI with the new values if there's a change
         setContent {
             WearApp(
                 axValue.value, ayValue.value, azValue.value,
                 gxValue.value, gyValue.value, gzValue.value,
                 hrValue.value
             )
+        }
+    }
+
+    fun fetchSensorData() {
+        lifecycleScope.launch {
+            val sensorDataList = database.sensorDataDao().getAllSensorData()
+            // Log the result or display it for verification
+            Log.d("SensorData", "Fetched Data: $sensorDataList")
         }
     }
 
