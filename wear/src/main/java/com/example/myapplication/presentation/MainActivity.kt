@@ -52,14 +52,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val gzValue = mutableStateOf("")
     val hrValue = mutableStateOf("")
 
-    private var prevAx: Float? = null
-    private var prevAy: Float? = null
-    private var prevAz: Float? = null
-    private var prevGx: Float? = null
-    private var prevGy: Float? = null
-    private var prevGz: Float? = null
-    private var prevHr: Float? = null
-
     private val permissions = arrayOf(
         android.Manifest.permission.BODY_SENSORS,
         android.Manifest.permission.HIGH_SAMPLING_RATE_SENSORS
@@ -106,52 +98,47 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 Sensor.TYPE_HEART_RATE -> handleHeartRate(it.values[0])
             }
         }
+
+        setContent {
+            WearApp(
+                axValue.value, ayValue.value, azValue.value,
+                gxValue.value, gyValue.value, gzValue.value,
+                hrValue.value
+            )
+        }
     }
 
     private fun handleAcceleration(values: FloatArray) {
         val (ax, ay, az) = values
-        if (ax != prevAx || ay != prevAy || az != prevAz) {
-            axValue.value = "%.2f".format(ax)
-            ayValue.value = "%.2f".format(ay)
-            azValue.value = "%.2f".format(az)
-            prevAx = ax
-            prevAy = ay
-            prevAz = az
+        axValue.value = "%.2f".format(ax)
+        ayValue.value = "%.2f".format(ay)
+        azValue.value = "%.2f".format(az)
 
-            lifecycleScope.launch(Dispatchers.IO) {
-                database.sensorDataDao().insertSensorData(SensorData(ax = ax, ay = ay, az = az, gx = null, gy = null, gz = null, hr = null))
-                logDatabaseData()
-            }
-        }
+        /*lifecycleScope.launch(Dispatchers.IO) {
+            database.sensorDataDao().insertSensorData(SensorData(type = "Accelerometer", x = ax, y = ay, z = az))
+            logDatabaseData()
+        }*/
     }
 
     private fun handleGyroscope(values: FloatArray) {
         val (gx, gy, gz) = values
-        if (gx != prevGx || gy != prevGy || gz != prevGz) {
-            gxValue.value = "%.2f".format(gx)
-            gyValue.value = "%.2f".format(gy)
-            gzValue.value = "%.2f".format(gz)
-            prevGx = gx
-            prevGy = gy
-            prevGz = gz
+        gxValue.value = "%.2f".format(gx)
+        gyValue.value = "%.2f".format(gy)
+        gzValue.value = "%.2f".format(gz)
 
-            lifecycleScope.launch(Dispatchers.IO) {
-                database.sensorDataDao().insertSensorData(SensorData(ax = null, ay = null, az = null, gx = gx, gy = gy, gz = gz, hr = null))
-                logDatabaseData()
-            }
-        }
+        /*lifecycleScope.launch(Dispatchers.IO) {
+            database.sensorDataDao().insertSensorData(SensorData(type = "Gyroscope", x = gx, y = gy, z = gz))
+            logDatabaseData()
+        }*/
     }
 
     private fun handleHeartRate(hr: Float) {
-        if (hr != prevHr) {
-            hrValue.value = "%.0f".format(hr)
-            prevHr = hr
+        hrValue.value = "%.0f".format(hr)
 
-            lifecycleScope.launch(Dispatchers.IO) {
-                database.sensorDataDao().insertSensorData(SensorData(ax = null, ay = null, az = null, gx = null, gy = null, gz = null, hr = hr))
-                logDatabaseData()
-            }
-        }
+        /*lifecycleScope.launch(Dispatchers.IO) {
+            database.sensorDataDao().insertSensorData(SensorData(type = "HeartRate", x = hr, y = null, z = null))
+            logDatabaseData()
+        }*/
     }
 
     private suspend fun logDatabaseData() {
