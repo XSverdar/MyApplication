@@ -1,5 +1,7 @@
 package com.example.myapplication.presentation
 
+import android.Manifest
+import android.R.attr.text
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,6 +15,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
@@ -20,10 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
@@ -53,8 +59,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val hrValue = mutableStateOf("")
 
     private val permissions = arrayOf(
-        android.Manifest.permission.BODY_SENSORS,
-        android.Manifest.permission.HIGH_SAMPLING_RATE_SENSORS
+        Manifest.permission.BODY_SENSORS,
+        Manifest.permission.HIGH_SAMPLING_RATE_SENSORS
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +72,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         setContent {
             WearApp("x1", "y1", "z1", "x2", "y2", "z2", "hr")
         }
+
 
         database = AppDatabase.getInstance(this)
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
@@ -114,10 +121,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         ayValue.value = "%.2f".format(ay)
         azValue.value = "%.2f".format(az)
 
-        /*lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             database.sensorDataDao().insertSensorData(SensorData(type = "Accelerometer", x = ax, y = ay, z = az))
             logDatabaseData()
-        }*/
+        }
     }
 
     private fun handleGyroscope(values: FloatArray) {
@@ -126,19 +133,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         gyValue.value = "%.2f".format(gy)
         gzValue.value = "%.2f".format(gz)
 
-        /*lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             database.sensorDataDao().insertSensorData(SensorData(type = "Gyroscope", x = gx, y = gy, z = gz))
             logDatabaseData()
-        }*/
+        }
     }
 
     private fun handleHeartRate(hr: Float) {
         hrValue.value = "%.0f".format(hr)
 
-        /*lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             database.sensorDataDao().insertSensorData(SensorData(type = "HeartRate", x = hr, y = null, z = null))
             logDatabaseData()
-        }*/
+        }
     }
 
     private suspend fun logDatabaseData() {
@@ -174,7 +181,15 @@ fun WearApp(x1: String, y1: String, z1: String, x2: String, y2: String, z2: Stri
                 .fillMaxSize()
                 .background(MaterialTheme.colors.background),
             contentAlignment = Alignment.Center
-        ) {
+        )
+        {
+            /*Button(
+                    modifier = Modifier
+                        .height(25.dp)
+                        .width(100.dp),
+            onClick = { },
+            content = { Text("START") }
+            )*/
             TimeText()
             Greeting(x1, y1, z1, x2, y2, z2, hr)
         }
